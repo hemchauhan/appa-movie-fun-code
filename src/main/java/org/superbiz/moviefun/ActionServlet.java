@@ -17,7 +17,12 @@
 package org.superbiz.moviefun;
 
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.superbiz.moviefun.movies.Movie;
 import org.superbiz.moviefun.movies.MoviesBean;
 
@@ -39,7 +44,10 @@ public class ActionServlet extends HttpServlet {
 
     public static int PAGE_SIZE = 5;
 
-    @EJB
+    @Autowired
+    @Qualifier("platformTransactionManagerMovie")
+    private PlatformTransactionManager platformTransactionManagerMovies;
+    @Autowired
     private MoviesBean moviesBean;
 
     @Override
@@ -56,6 +64,7 @@ public class ActionServlet extends HttpServlet {
         String action = request.getParameter("action");
 
         if ("Add".equals(action)) {
+            TransactionStatus transactionStatus= platformTransactionManagerMovies.getTransaction(new DefaultTransactionDefinition());
 
             String title = request.getParameter("title");
             String director = request.getParameter("director");
@@ -66,16 +75,19 @@ public class ActionServlet extends HttpServlet {
             Movie movie = new Movie(title, director, genre, rating, year);
 
             moviesBean.addMovie(movie);
+            platformTransactionManagerMovies.commit(transactionStatus);
             response.sendRedirect("moviefun");
             return;
 
         } else if ("Remove".equals(action)) {
+            TransactionStatus transactionStatus= platformTransactionManagerMovies.getTransaction(new DefaultTransactionDefinition());
+
 
             String[] ids = request.getParameterValues("id");
             for (String id : ids) {
                 moviesBean.deleteMovieId(new Long(id));
             }
-
+            platformTransactionManagerMovies.commit(transactionStatus);
             response.sendRedirect("moviefun");
             return;
 
